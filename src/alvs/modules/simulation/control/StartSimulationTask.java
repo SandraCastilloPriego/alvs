@@ -25,22 +25,18 @@ import alvs.desktop.impl.DesktopParameters;
 import alvs.main.ALVSCore;
 import alvs.modules.configuration.ConfigurationParameters;
 import alvs.modules.simulation.Bug;
-import alvs.modules.simulation.CanvasWorld;
 import alvs.modules.simulation.Result;
-import alvs.modules.simulation.TestBug;
 import alvs.modules.simulation.World;
 import alvs.modules.simulation.classifiersEnum;
 import alvs.taskcontrol.TaskStatus;
 import alvs.util.Range;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JInternalFrame;
-import javax.swing.JPanel;
 import java.util.List;
 import java.util.Random;
 import javax.swing.JScrollPane;
@@ -62,10 +58,8 @@ public class StartSimulationTask {
         private TaskStatus status = TaskStatus.WAITING;
         private String errorMessage;
         private sinkThread thread;
-        private CanvasWorld canvas;
-        private JPanel canvasPanel;
         private JInternalFrame frame;
-        private int numberOfBugsCopies, worldSize, bugLife, iterations, maxBugs = 1000;
+        private int numberOfBugsCopies, bugLife, iterations, maxBugs = 1000;
         private classifiersEnum classifier = classifiersEnum.Automatic_Selection;
         private JTextArea textArea;
         private List<Range> ranges;
@@ -89,7 +83,6 @@ public class StartSimulationTask {
                         }
                 }
                 this.numberOfBugsCopies = (Integer) parameters.getParameterValue(StartSimulationParameters.numberOfBugs);
-                this.worldSize = (Integer) parameters.getParameterValue(StartSimulationParameters.worldSize);
                 this.bugLife = (Integer) parameters.getParameterValue(StartSimulationParameters.bugLife);
                 this.iterations = (Integer) parameters.getParameterValue(StartSimulationParameters.iterations);
                 this.maxBugs = (Integer) parameters.getParameterValue(StartSimulationParameters.bugLimit);
@@ -101,7 +94,6 @@ public class StartSimulationTask {
 
                 DesktopParameters desktopParameters = (DesktopParameters) ALVSCore.getDesktop().getParameterSet();
                 ConfigurationParameters configuration = (ConfigurationParameters) desktopParameters.getSaveConfigurationParameters();
-                this.showCanvas = (Boolean) configuration.getParameterValue(ConfigurationParameters.showCanvas);
                 this.showResults = (Boolean) configuration.getParameterValue(ConfigurationParameters.showResults);
 
 
@@ -135,16 +127,6 @@ public class StartSimulationTask {
         public void run() {
                 try {
                         status = TaskStatus.PROCESSING;
-                        frame = new JInternalFrame("Simulation", true, true, true, true);
-                        frame.setSize(new Dimension(700, 700));
-                        frame.setLayout(new FlowLayout());
-                        canvasPanel = new JPanel();
-                        canvasPanel.setLayout(new FlowLayout());
-                        canvasPanel.setSize(new Dimension(700, 700));
-                        canvasPanel.setVisible(true);
-                        frame.add(canvasPanel);
-                        ALVSCore.getDesktop().addInternalFrame(frame);
-
 
                         JInternalFrame frame2 = new JInternalFrame("Results", true, true, true, true);
                         frame2.setSize(new Dimension(700, 700));
@@ -184,13 +166,8 @@ public class StartSimulationTask {
                 DesktopParameters desktopParameters = (DesktopParameters) ALVSCore.getDesktop().getParameterSet();
                 ConfigurationParameters configuration = (ConfigurationParameters) desktopParameters.getSaveConfigurationParameters();
 
-                this.showCanvas = (Boolean) configuration.getParameterValue(ConfigurationParameters.showCanvas);
                 this.showResults = (Boolean) configuration.getParameterValue(ConfigurationParameters.showResults);
-                World world = new World(training, validation, this.worldSize, range, this.numberOfBugsCopies, this.bugLife, textArea, this.maxBugs, maxVariables, this.classifier, this.repProbability);
-                canvas = new CanvasWorld(world);
-                canvasPanel.removeAll();
-                canvasPanel.add(canvas);
-                canvas.setVisible(true);
+                World world = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, textArea, this.maxBugs, maxVariables, this.classifier, this.repProbability);
                 thread = new sinkThread(world);
                 thread.start();
         }
@@ -235,10 +212,6 @@ public class StartSimulationTask {
                         double result = Double.MAX_VALUE;
                         while (result > stoppingCriteria) {
                                 for (int i = 0; i < iterations; i++) {
-                                        if (showCanvas) {
-                                                // Paints the graphics
-                                                canvas.update(canvas.getGraphics());
-                                        }
                                         world.cicle();
                                 }
 
@@ -284,7 +257,7 @@ public class StartSimulationTask {
                         }
                 };
 
-                for (Bug bug : bugs) {                       
+                for (Bug bug : bugs) {
                         if (bug.getFMeasure() > 0.4) {
                                 Result result = new Result();
                                 result.Classifier = bug.getClassifierType().name();
@@ -294,14 +267,14 @@ public class StartSimulationTask {
                                         ids.add(row.getID());
                                 }
 
-                                TestBug testing = new TestBug(ids, bug.getClassifierType(), training, validation);
-                                double[] values = testing.prediction();
-                                result.tspecificity = values[0];
-                                result.tsensitivity = values[1];
-                                result.aucT = values[2];
-                                result.vspecificity = values[3];
-                                result.vsensitivity = values[4];
-                                result.aucV = values[5];
+                              //  TestBug testing = new TestBug(ids, bug.getClassifierType(), training, validation);
+                               // double[] values = testing.prediction();
+                                result.tspecificity = bug.getspecificity();
+                                result.tsensitivity = bug.getsensitivity();
+                                result.aucT = 0;
+                                result.vspecificity = 0;
+                                result.vsensitivity = 0;
+                                result.aucV = 0;
                                 boolean isIt = false;
                                 for (Result r : this.results) {
                                         if (r.isIt(result.getValues(), result.Classifier)) {
@@ -368,7 +341,7 @@ public class StartSimulationTask {
         }
 
         private void startCicleVariableNumberSelection(Range range, int numberOfVariables) {
-                World iworld = new World(training, validation, this.worldSize, range, this.numberOfBugsCopies, this.bugLife, null, this.maxBugs, numberOfVariables, this.classifier, this.repProbability);
+                World iworld = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, null, this.maxBugs, numberOfVariables, this.classifier, this.repProbability);
                 sinkThreadVariableNumberSelection thread = new sinkThreadVariableNumberSelection(numberOfVariables, iworld);
                 thread.start();
         }

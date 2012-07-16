@@ -29,11 +29,8 @@ import javax.swing.JTextArea;
 public class World {
 
         BugDataset trainingDataset, validationDataset;
-        Cell[][] cells;
         List<Bug> population;
         Random rand;
-        int cellsPerSide;
-        int numberOfCells;
         int jump = 1;
         int cicleNumber = 0;
         int bugLife;
@@ -47,14 +44,13 @@ public class World {
         boolean firstCycle = true;
         int numberOfBugsCopies;
         Range range;
+        double repProbability;
 
-        public World(BugDataset training, BugDataset validation, int cellsPerSide, Range range,
+        public World(BugDataset training, BugDataset validation, Range range,
                 int numberOfBugsCopies, int bugLife, JTextArea text,
                 int bugsLimitNumber, int maxVariables, classifiersEnum classifier, double repProbability) {
                 this.trainingDataset = training;
                 this.validationDataset = validation;
-                this.cellsPerSide = cellsPerSide;
-                this.numberOfCells = cellsPerSide * cellsPerSide;
                 this.population = new ArrayList<Bug>();
                 this.rand = new Random();
                 this.bugLife = bugLife;
@@ -64,22 +60,11 @@ public class World {
                 this.classifier = classifier;
                 this.numberOfBugsCopies = numberOfBugsCopies;
                 this.range = range;
-
+                this.repProbability = repProbability;
                 this.results = new ArrayList<Result>();
-
 
                 if (training != null) {
                         try {
-                                cells = new Cell[cellsPerSide][cellsPerSide];
-                                for (int i = 0; i < cellsPerSide; i++) {
-                                        cells[i] = new Cell[cellsPerSide];
-                                        for (int j = 0; j < cells[i].length; j++) {
-                                                cells[i][j] = new Cell(bugLife, maxVariables, repProbability);
-                                                this.setSamplesInCell(training.getAllColumnNames(), cells[i][j], range);
-                                        }
-                                }
-
-
                                 for (int i = 0; i < numberOfBugsCopies; i++) {
                                         for (PeakListRow row : training.getRows()) {
                                                 this.addBug(row);
@@ -96,12 +81,6 @@ public class World {
                 }
         }
 
-        private void setSamplesInCell(Vector<String> samplesNames, Cell cell, Range range) {
-                int pos = range.getRandom();
-                String name = samplesNames.elementAt(pos);
-                cell.setParameters(name, range, trainingDataset.getSampleType(name));
-        }
-
         public synchronized void addMoreBugs() {
                 for (PeakListRow row : trainingDataset.getRows()) {
                         this.addBug(row);
@@ -113,21 +92,9 @@ public class World {
         }
 
         private void addBug(PeakListRow row) {
-                boolean isInside = true;
-                int cont = 0;
-                while (isInside) {
-                        int X = this.rand.nextInt(this.cellsPerSide - 1);
-                        int Y = this.rand.nextInt(this.cellsPerSide - 1);
-                        Bug bug = new Bug(X, Y, cells[X][Y], row, trainingDataset, bugLife, maxVariables, classifier);
-                        bug.eval();
-                        cells[X][Y].addBug(bug);
-                        this.population.add(bug);
-                        isInside = false;
-                        cont++;
-                        if (cont > numberOfCells) {
-                                break;
-                        }
-                }
+                Bug bug = new Bug(row, trainingDataset, bugLife, maxVariables, classifier, this.range);
+                bug.eval();
+                this.population.add(bug);
         }
 
         public int getMaxVariables() {
@@ -135,23 +102,15 @@ public class World {
         }
 
         public void cicle() {
-                movement();
-                eat();
 
-                for (Cell[] cellArray : cells) {
-                        for (Cell cell : cellArray) {
-                                if (this.changeNVariables) {
-                                        cell.setMaxVariable(maxVariables);
-                                }
-                                List<Bug[]> childs = cell.reproduction();
-                                if (childs != null) {
-                                        for (Bug[] parents : childs) {                                              
-                                                Bug child = new Bug(parents[0], parents[1], this.trainingDataset, this.bugLife, this.maxVariables);
-                                                cell.addBug(child);
-                                                this.population.add(child);
-                                        }
-                                }
+                  eat();
+                for (int j = 0; j < 10; j++) {
+                        List<Bug> bugsInside = new ArrayList<Bug>();
+                        for (int i = 0; i < 5; i++) {
+                                int index = this.rand.nextInt(this.population.size());
+                                bugsInside.add(this.population.get(index));
                         }
+                        reproduction(bugsInside);
                 }
 
                 death();
@@ -165,67 +124,6 @@ public class World {
 
                 this.changeNVariables = false;
 
-        }
-
-        private synchronized void movement() {
-                for (Bug bug : population) {
-                        try {
-                                int direction = rand.nextInt(8);
-
-                                int x = bug.getx();
-                                int y = bug.gety();
-
-                                switch (direction) {
-                                        case 0:
-                                                this.setBugPosition(bug, x + jump, y);
-                                                break;
-                                        case 1:
-                                                this.setBugPosition(bug, x, y);
-                                                break;
-                                        case 2:
-                                                this.setBugPosition(bug, x, y + jump);
-                                                break;
-                                        case 3:
-                                                this.setBugPosition(bug, x, y - jump);
-                                                break;
-                                        case 4:
-                                                this.setBugPosition(bug, x + jump, y + jump);
-                                                break;
-                                        case 5:
-                                                this.setBugPosition(bug, x + jump, y - jump);
-                                                break;
-                                        case 6:
-                                                this.setBugPosition(bug, x - jump, y + jump);
-                                                break;
-                                        case 7:
-                                                this.setBugPosition(bug, x - jump, y - jump);
-                                                break;
-                                }
-                        } catch (Exception e) {
-                        }
-                }
-        }
-
-        private void setBugPosition(Bug bug, int newx, int newy) {
-                if (newx > this.cellsPerSide - 1) {
-                        newx = 1;
-                } else if (newx < 0) {
-                        newx = this.cellsPerSide - 1;
-                }
-                if (newy > this.cellsPerSide - 1) {
-                        newy = 1;
-                } else if (newy < 0) {
-                        newy = this.cellsPerSide - 1;
-                }
-                bug.getCell().removeBug(bug);
-                bug.setPosition(newx, newy);
-                cells[newx][newy].addBug(bug);
-                bug.setCell(cells[newx][newy]);
-
-        }
-
-        public int getWorldSize() {
-                return this.cellsPerSide;
         }
 
         private synchronized void eat() {
@@ -262,7 +160,6 @@ public class World {
                         try {
                                 if (bug.isDead()) {
                                         deadBugs.add(bug);
-                                        this.cells[bug.getx()][bug.gety()].removeBug(bug);
                                 } else {
                                         if (this.changeNVariables) {
                                                 bug.setMaxVariable(maxVariables);
@@ -296,13 +193,54 @@ public class World {
         }
 
         public void restart(Range newRange) {
-                for (Cell[] cellArray : cells) {
-                        for (Cell cell : cellArray) {
-                                cell.setRange(newRange, this.trainingDataset);
-                        }
+                this.range = newRange;
+                for (Bug b : this.population) {
+                        b.setNewRange(newRange,
+                                this.trainingDataset);
                 }
 
-                this.addMoreBugs();
+                // this.addMoreBugs();
         }
-       
+
+        private void reproduction(List<Bug> bugsInside) {
+                try {
+                        Comparator<Bug> c = new Comparator<Bug>() {
+
+                                public int compare(Bug o1, Bug o2) {
+                                        if (o1.getFMeasure() < o2.getFMeasure()) {
+                                                return 1;
+                                        } else {
+                                                return -1;
+                                        }
+                                }
+                        };
+                        if (bugsInside.size() > 1) {
+                                Collections.sort(bugsInside, c);
+                                Bug mother = bugsInside.get(0);
+                                for (Bug father : bugsInside) {
+                                        if (!mother.isSameBug(father) && isKilling(mother.getFMeasure() - father.getFMeasure()) && father.getAge() > father.getLife() / 2 && father.getRows().size() > 1) {
+                                                father.kill();
+                                        } else if (!mother.isSameBug(father) && isKilling(father.getFMeasure() - mother.getFMeasure()) && father.getAge() > father.getLife() / 2 && mother.getRows().size() > 1) {
+                                                mother.kill();
+                                        } else if (!mother.isSameBug(father) && isKilling(this.repProbability)) {                                                
+                                                population.add(new Bug(father, mother, this.trainingDataset, this.bugLife, this.maxVariables, this.range));
+                                        }                               
+                                }
+                        }
+
+                } catch (Exception e) {
+                }
+        }
+
+        private boolean isKilling(double difference) {
+                if (difference < 0) {
+                        return false;
+                }
+                double value = Math.random();
+                if (value <= difference - 0.1) {
+                        return true;
+                } else {
+                        return false;
+                }
+        }
 }

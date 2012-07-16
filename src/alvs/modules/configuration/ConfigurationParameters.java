@@ -26,12 +26,9 @@ public class ConfigurationParameters extends SimpleParameterSet {
 
         public static final Parameter showResults = new SimpleParameter(
                 ParameterType.BOOLEAN, "Write results",
-                "Write the results in each iteration", false);
-        public static final Parameter showCanvas = new SimpleParameter(
-                ParameterType.BOOLEAN, "Paint simulation",
-                "Paint the bugs into the canvas", false);
+                "Write the results in each iteration", false);        
 
         public ConfigurationParameters() {
-                super(new Parameter[]{showResults, showCanvas});
+                super(new Parameter[]{showResults});
         }
 }

@@ -44,16 +44,14 @@ import weka.core.*;
  *
  * @author bicha
  */
-public class Bug {
+public final class Bug {
 
-        private Cell cell;
-        private int x, y;
         private List<PeakListRow> rowList;
         private int life = 300;
         private Classifier classifier;
         private classifiersEnum classifierType;
         private double total;
-        double spec = 0, sen = 0, totalspec = 0, totalsen = 0;
+        double spec = 0, sen = 0, totaltposfneg = 0, tpos = 0, tneg = 0, fpos = 0, fneg = 0, precision = 0, recall = 0;
         private Random rand;
         private int MAXNUMBERGENES;
         Evaluation eval;
@@ -63,12 +61,9 @@ public class Bug {
         Instances training, test;
         double fValue = 0;
 
-        public Bug(int x, int y, Cell cell, PeakListRow row, BugDataset dataset, int bugLife, int maxVariable, classifiersEnum classifier) {
+        public Bug(PeakListRow row, BugDataset dataset, int bugLife, int maxVariable, classifiersEnum classifier, Range range) {
                 rand = new Random();
-                this.cell = cell;
-                this.range = cell.getRange();
-                this.x = x;
-                this.y = y;
+                this.range = range;
                 this.rowList = new ArrayList<PeakListRow>();
                 if (row != null) {
                         this.rowList.add(row);
@@ -80,7 +75,7 @@ public class Bug {
                 } else {
                         this.classifierType = classifier;
                 }
-                this.classify(cell.getRange(), dataset);
+                this.classify(range, dataset);
                 this.life = bugLife;
 
                 clusters = new int[rowList.size()];
@@ -92,16 +87,14 @@ public class Bug {
         public void eval() {
                 try {
                         eval = new Evaluation(training);
-                        eval.crossValidateModel(this.classifier, training, 10, rand);
-                        this.fValue = eval.fMeasure(1);
                 } catch (Exception ex) {
-                        // this.life = 0;
+                        this.life = 0;
                 }
         }
 
         @Override
         public Bug clone() {
-                Bug newBug = new Bug(this.x, this.y, this.cell, null, null, this.life, this.MAXNUMBERGENES, this.classifierType);
+                Bug newBug = new Bug(null, null, this.life, this.MAXNUMBERGENES, this.classifierType, this.range);
                 newBug.training = this.training;
                 newBug.test = this.test;
                 newBug.rowList = this.getRows();
@@ -112,16 +105,13 @@ public class Bug {
                 return this.total;
         }
 
-        public Bug(Bug father, Bug mother, BugDataset dataset, int bugLife, int maxVariable) {
+        public Bug(Bug father, Bug mother, BugDataset dataset, int bugLife, int maxVariable, Range range) {
                 rand = new Random();
-                this.cell = father.getCell();
-                this.range = cell.getRange();
-                this.x = father.getx();
-                this.y = father.gety();
                 this.rowList = new ArrayList<PeakListRow>();
                 this.MAXNUMBERGENES = maxVariable;
                 this.assingGenes(mother, false);
                 this.assingGenes(father, false);
+                this.range = range;
 
                 this.orderPurgeGenes();
 
@@ -130,7 +120,7 @@ public class Bug {
                 } else {
                         this.classifierType = father.getClassifierType();
                 }
-                this.classify(cell.getRange(), dataset);
+                this.classify(range, dataset);
 
                 this.life = bugLife;
 
@@ -138,7 +128,7 @@ public class Bug {
                 for (int i = 0; i < rowList.size(); i++) {
                         clusters[i] = rowList.get(i).getCluster();
                 }
-
+                this.eval();
         }
 
         public void setMaxVariable(int maxVariable) {
@@ -193,27 +183,6 @@ public class Bug {
                 return this.rowList;
         }
 
-        public void setPosition(int x, int y) {
-                this.x = x;
-                this.y = y;
-        }
-
-        public int getx() {
-                return this.x;
-        }
-
-        public int gety() {
-                return this.y;
-        }
-
-        public void setCell(Cell cell) {
-                this.cell = cell;
-        }
-
-        public Cell getCell() {
-                return this.cell;
-        }
-
         public double getLife() {
                 return life;
         }
@@ -244,14 +213,36 @@ public class Bug {
         }
 
         public void eat() {
+                Instance instance = this.test.instance(this.rand.nextInt(this.test.numInstances()));
+                double prediction = isClassified(instance);
+                double realValue = Double.parseDouble(instance.stringValue(instance.classAttribute()));
 
-                if (isClassified()) {
+                if (prediction == 0.0 && realValue == 1.0) {
                         this.life += 0.5;
-
-                } else {
+                        this.tneg++;
+                        this.totaltposfneg++;
+                } else if (prediction == 1.0 && realValue == 2.0) {
+                        this.life += 0.5;
+                        this.tpos++;
+                        this.totaltposfneg++;
+                } else if (prediction == 0.0 && realValue == 2.0) {
                         this.life -= 0.5;
+                        this.fneg++;
+                } else if (prediction == 1.0 && realValue == 1.0) {
+                        this.life -= 0.5;
+                        this.fpos++;
                 }
                 this.total++;
+                if (this.tpos > 0) {
+                        this.sen = this.tpos / this.totaltposfneg;
+                        this.precision = this.tpos / (this.tpos + this.fpos);
+                        this.recall = this.tpos / (this.tpos + this.fneg);
+                }
+
+                if (this.tneg > 0) {
+                        this.spec = this.tneg / this.totaltposfneg;
+                }
+                this.fValue = 2 * ((precision * recall) / (precision + recall));
         }
 
         public void increaseEnergy() {
@@ -266,18 +257,14 @@ public class Bug {
                 this.life++;
         }
 
-        public boolean isClassified() {
+        public double isClassified(Instance instance) {
                 try {
-                        eval.evaluateModel(classifier, test);
-                        double f = eval.fMeasure(1);
-                        if (f > 0.7) {
-                                return true;
-                        } else {
-                                return false;
-                        }
-
+                        double prediction = eval.evaluateModelOnceAndRecordPrediction(classifier, instance);
+                        //  System.out.println(instance.stringValue(instance.classAttribute()) + " - " + prediction);
+                        return prediction;
                 } catch (Exception ex) {
-                        return false;
+                        ex.printStackTrace();
+                        return -1;
                 }
         }
 
@@ -416,8 +403,10 @@ public class Bug {
                 }
         }
 
-        void setNewRange(Range newRange) {
+        void setNewRange(Range newRange, BugDataset dataset) {
                 this.range = newRange;
+                classify(newRange, dataset);
+                this.eval();
         }
 
         public boolean isSameBug(Bug bug) {
@@ -434,5 +423,13 @@ public class Bug {
                 } else {
                         return false;
                 }
+        }
+
+        public double getspecificity() {
+                return this.spec;
+        }
+
+        public double getsensitivity() {
+                return this.sen;
         }
 }

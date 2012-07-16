@@ -28,9 +28,6 @@ public class StartSimulationParameters extends SimpleParameterSet {
         public static final Parameter iterations = new SimpleParameter(
                 ParameterType.INTEGER, "Number of iterations",
                 "Introduce the number of iterations", new Integer(1000));
-        public static final Parameter worldSize = new SimpleParameter(
-                ParameterType.INTEGER, "Size of the world",
-                "Introduce the size of each side of the world", new Integer(100));
         public static final Parameter bugLimit = new SimpleParameter(
                 ParameterType.INTEGER, "Max number of bugs",
                 "Maximum number of bugs living in the world", new Integer(1500));
@@ -54,6 +51,6 @@ public class StartSimulationParameters extends SimpleParameterSet {
                 "Maximum number of Variables. Set \"-1\" if the selection has to be done automatically", new Integer(-1));
 
         public StartSimulationParameters() {
-                super(new Parameter[]{iterations, worldSize, bugLimit, numberOfBugs, bugLife, classifier, stoppingCriteria, repProbability, numberOfVariables});
+                super(new Parameter[]{iterations, bugLimit, numberOfBugs, bugLife, classifier, stoppingCriteria, repProbability, numberOfVariables});
         }
 }
