@@ -8,7 +8,7 @@ public class Result {
         public String Classifier;
         public List<String> values;
         public double tsensitivity, tspecificity, vsensitivity, vspecificity;
-        public double aucT, aucV;
+        public double fScore, aucV;
         public int count = 1;
 
         public Result() {
@@ -45,8 +45,8 @@ public class Result {
 
         @Override
         public String toString() {
-                String text = Classifier + " Training - " + tspecificity + " - " + tsensitivity + " - " + aucT + " - Count: " + count + "\n";
-                text += "Validation - " + vspecificity + " - " + vsensitivity + " - " + aucV + " \n";
+                 String text = Classifier + " Training - Specificity: " + tspecificity + " - Sensitivity: " + tsensitivity + " - F-score: " + fScore + " - Count: " + count + "\n";
+                 text += "Validation - " + vspecificity + " - " + vsensitivity + " - " + aucV + " \n";
 
                 for (String val : values) {
                         text += val + " - ";

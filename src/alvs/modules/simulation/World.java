@@ -93,7 +93,7 @@ public class World {
 
         private void addBug(PeakListRow row) {
                 Bug bug = new Bug(row, trainingDataset, bugLife, maxVariables, classifier, this.range);
-                bug.eval();
+                bug.evaluation();
                 this.population.add(bug);
         }
 
@@ -102,21 +102,22 @@ public class World {
         }
 
         public void cicle() {
-
-                  eat();
-                for (int j = 0; j < 10; j++) {
-                        List<Bug> bugsInside = new ArrayList<Bug>();
-                        for (int i = 0; i < 5; i++) {
-                                int index = this.rand.nextInt(this.population.size());
-                                bugsInside.add(this.population.get(index));
-                        }
-                        reproduction(bugsInside);
-                }
-
                 death();
 
                 if (population.size() > this.bugsLimitNumber) {
                         this.purgeBugs();
+                }
+                eat();
+                for (int j = 0; j < this.population.size(); j++) {
+                        List<Bug> bugsInside = new ArrayList<Bug>();
+                        bugsInside.add(this.population.get(j));
+                        for (int i = 0; i < 5; i++) {
+                                int index = this.rand.nextInt(this.population.size());
+                                if (index > 0) {
+                                        bugsInside.add(this.population.get(index));
+                                }
+                        }
+                        reproduction(bugsInside);
                 }
 
                 this.cicleNumber++;
@@ -199,7 +200,7 @@ public class World {
                                 this.trainingDataset);
                 }
 
-                // this.addMoreBugs();
+                this.addMoreBugs();
         }
 
         private void reproduction(List<Bug> bugsInside) {
@@ -218,17 +219,24 @@ public class World {
                                 Collections.sort(bugsInside, c);
                                 Bug mother = bugsInside.get(0);
                                 for (Bug father : bugsInside) {
-                                        if (!mother.isSameBug(father) && isKilling(mother.getFMeasure() - father.getFMeasure()) && father.getAge() > father.getLife() / 2 && father.getRows().size() > 1) {
-                                                father.kill();
-                                        } else if (!mother.isSameBug(father) && isKilling(father.getFMeasure() - mother.getFMeasure()) && father.getAge() > father.getLife() / 2 && mother.getRows().size() > 1) {
-                                                mother.kill();
-                                        } else if (!mother.isSameBug(father) && isKilling(this.repProbability)) {                                                
-                                                population.add(new Bug(father, mother, this.trainingDataset, this.bugLife, this.maxVariables, this.range));
-                                        }                               
+                                        if (!mother.isSameBug(father)) {
+                                               /* if (isKilling(mother.getFMeasure()
+                                                        - father.getFMeasure())
+                                                        && father.getRows().size() > 1) {
+                                                        father.kill();
+                                                } else if (isKilling(father.getFMeasure()
+                                                        - mother.getFMeasure())
+                                                        && mother.getRows().size() > 1) {
+                                                        mother.kill();
+                                                } else */if (isKilling(this.repProbability) && father.getAge() > (this.bugLife / 1.5) && mother.getAge() > (this.bugLife / 1.5)) {
+                                                        population.add(new Bug(father, mother, this.trainingDataset, this.bugLife, this.maxVariables, this.range));
+                                                }
+                                        }
                                 }
                         }
 
                 } catch (Exception e) {
+                        System.out.println("Something failed during reproduction");
                 }
         }
 

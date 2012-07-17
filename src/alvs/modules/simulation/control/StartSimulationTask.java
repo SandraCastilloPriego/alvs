@@ -271,7 +271,7 @@ public class StartSimulationTask {
                                // double[] values = testing.prediction();
                                 result.tspecificity = bug.getspecificity();
                                 result.tsensitivity = bug.getsensitivity();
-                                result.aucT = 0;
+                                result.fScore = bug.getFMeasure();
                                 result.vspecificity = 0;
                                 result.vsensitivity = 0;
                                 result.aucV = 0;

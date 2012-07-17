@@ -50,8 +50,8 @@ public final class Bug {
         private int life = 300;
         private Classifier classifier;
         private classifiersEnum classifierType;
-        private double total;
-        double spec = 0, sen = 0, totaltposfneg = 0, tpos = 0, tneg = 0, fpos = 0, fneg = 0, precision = 0, recall = 0;
+        private double age;
+        double spec = 0, sen = 0, totaltpostneg = 0, tpos = 0, tneg = 0, fpos = 0, fneg = 0, precision = 0, recall = 0;
         private Random rand;
         private int MAXNUMBERGENES;
         Evaluation eval;
@@ -84,14 +84,6 @@ public final class Bug {
                 }
         }
 
-        public void eval() {
-                try {
-                        eval = new Evaluation(training);
-                } catch (Exception ex) {
-                        this.life = 0;
-                }
-        }
-
         @Override
         public Bug clone() {
                 Bug newBug = new Bug(null, null, this.life, this.MAXNUMBERGENES, this.classifierType, this.range);
@@ -102,7 +94,7 @@ public final class Bug {
         }
 
         public double getAge() {
-                return this.total;
+                return this.age;
         }
 
         public Bug(Bug father, Bug mother, BugDataset dataset, int bugLife, int maxVariable, Range range) {
@@ -128,7 +120,25 @@ public final class Bug {
                 for (int i = 0; i < rowList.size(); i++) {
                         clusters[i] = rowList.get(i).getCluster();
                 }
-                this.eval();
+                
+                this.evaluation();
+        }
+        
+        public void evaluation() {
+                try {
+                        eval = new Evaluation(training);
+                        eval.evaluateModel(classifier, training);
+                        this.fValue = eval.fMeasure(1);
+                        this.tpos = eval.numTruePositives(1);
+                        this.tneg = eval.numTrueNegatives(1);
+                        this.fpos = eval.numFalsePositives(1);
+                        this.fneg = eval.numFalseNegatives(1);
+                        this.sen = this.tpos / (this.tpos + this.fneg);
+                        this.spec = this.tneg / (this.tneg + this.fpos);
+                } catch (Exception ex) {
+                        System.out.println("previuos fValue: " + this.fValue);
+                        this.life = 0;
+                }
         }
 
         public void setMaxVariable(int maxVariable) {
@@ -207,42 +217,44 @@ public final class Bug {
                                 classifier.buildClassifier(training);
                         }
                 } catch (Exception ex) {
-                        ex.printStackTrace();
-                        //Logger.getLogger(Bug.class.getName()).log(Level.SEVERE, null, ex);
                 }
         }
 
         public void eat() {
-                Instance instance = this.test.instance(this.rand.nextInt(this.test.numInstances()));
-                double prediction = isClassified(instance);
-                double realValue = Double.parseDouble(instance.stringValue(instance.classAttribute()));
+                try {
+                        Instance instance = this.test.instance(this.rand.nextInt(this.test.numInstances()));
+                        double prediction = eval.evaluateModelOnce(classifier, instance);
+                        double realValue = Double.parseDouble(instance.stringValue(instance.classAttribute()));
 
-                if (prediction == 0.0 && realValue == 1.0) {
-                        this.life += 0.5;
-                        this.tneg++;
-                        this.totaltposfneg++;
-                } else if (prediction == 1.0 && realValue == 2.0) {
-                        this.life += 0.5;
-                        this.tpos++;
-                        this.totaltposfneg++;
-                } else if (prediction == 0.0 && realValue == 2.0) {
-                        this.life -= 0.5;
-                        this.fneg++;
-                } else if (prediction == 1.0 && realValue == 1.0) {
-                        this.life -= 0.5;
-                        this.fpos++;
-                }
-                this.total++;
-                if (this.tpos > 0) {
-                        this.sen = this.tpos / this.totaltposfneg;
-                        this.precision = this.tpos / (this.tpos + this.fpos);
-                        this.recall = this.tpos / (this.tpos + this.fneg);
-                }
+                        if (prediction == 0.0 && realValue == 1.0) {
+                                this.life += 0.5;
+                              //  this.tneg++;
+                              //  this.totaltpostneg++;
+                        } else if (prediction == 1.0 && realValue == 2.0) {
+                                this.life += 0.5;
+                             //   this.tpos++;
+                              //  this.totaltpostneg++;
+                        } else if (prediction == 0.0 && realValue == 2.0) {
+                                this.life -= 0.5;
+                              //  this.fneg++;
+                        } else if (prediction == 1.0 && realValue == 1.0) {
+                                this.life -= 0.5;
+                              //  this.fpos++;
+                        }
+                        this.age++;
+                      /*  if (this.tpos > 0) {
+                                this.sen = this.tpos / (this.tpos + this.fneg);
+                               // this.precision = this.tpos / (this.tpos + this.fpos);
+                              //  this.recall = this.tpos / (this.tpos + this.fneg);
+                        }
 
-                if (this.tneg > 0) {
-                        this.spec = this.tneg / this.totaltposfneg;
+                        if (this.tneg > 0) {
+                                this.spec = this.tneg / (this.tneg + this.fpos);
+                        }
+                        this.fValue = 2 * ((sen * spec) / (sen + spec));*/
+                } catch (Exception ex) {
+                        Logger.getLogger(Bug.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                this.fValue = 2 * ((precision * recall) / (precision + recall));
         }
 
         public void increaseEnergy() {
@@ -255,17 +267,6 @@ public final class Bug {
 
         public void addLife() {
                 this.life++;
-        }
-
-        public double isClassified(Instance instance) {
-                try {
-                        double prediction = eval.evaluateModelOnceAndRecordPrediction(classifier, instance);
-                        //  System.out.println(instance.stringValue(instance.classAttribute()) + " - " + prediction);
-                        return prediction;
-                } catch (Exception ex) {
-                        ex.printStackTrace();
-                        return -1;
-                }
         }
 
         private Classifier setClassifier() {
@@ -398,7 +399,6 @@ public final class Bug {
                         double CVError = 1 - evalC.fMeasure(1);
                         return CVError;
                 } catch (Exception ex) {
-                        ex.printStackTrace();
                         return -1.0;
                 }
         }
@@ -406,7 +406,7 @@ public final class Bug {
         void setNewRange(Range newRange, BugDataset dataset) {
                 this.range = newRange;
                 classify(newRange, dataset);
-                this.eval();
+                this.evaluation();
         }
 
         public boolean isSameBug(Bug bug) {
@@ -431,5 +431,13 @@ public final class Bug {
 
         public double getsensitivity() {
                 return this.sen;
+        }
+
+        public double getPrecision() {
+                return this.precision;
+        }
+
+        public double geRecall() {
+                return this.recall;
         }
 }
