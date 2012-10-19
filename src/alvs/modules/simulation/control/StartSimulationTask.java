@@ -31,14 +31,10 @@ import alvs.modules.simulation.classifiersEnum;
 import alvs.taskcontrol.TaskStatus;
 import alvs.util.Range;
 import java.awt.Dimension;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JInternalFrame;
-import java.util.List;
-import java.util.Random;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import org.apache.commons.math.FunctionEvaluationException;
@@ -58,7 +54,6 @@ public class StartSimulationTask {
         private TaskStatus status = TaskStatus.WAITING;
         private String errorMessage;
         private sinkThread thread;
-        private JInternalFrame frame;
         private int numberOfBugsCopies, bugLife, iterations, maxBugs = 1000;
         private classifiersEnum classifier = classifiersEnum.Automatic_Selection;
         private JTextArea textArea;
@@ -67,9 +62,9 @@ public class StartSimulationTask {
         private int totalIDs, stoppingCriteria, stopCounting = 0;
         private double minCountId = 100;
         private List<Result> results;
-        private boolean showResults, showCanvas;
+        private boolean showResults;
         private int userDefinedMaxNVariables;
-        private double repProbability;
+        private int dataPartition;
         PolynomialFitter fitter;
         int[] counter;
 
@@ -87,7 +82,7 @@ public class StartSimulationTask {
                 this.iterations = (Integer) parameters.getParameterValue(StartSimulationParameters.iterations);
                 this.maxBugs = (Integer) parameters.getParameterValue(StartSimulationParameters.bugLimit);
                 this.stoppingCriteria = (Integer) parameters.getParameterValue(StartSimulationParameters.stoppingCriteria);
-                this.repProbability = (Double) parameters.getParameterValue(StartSimulationParameters.repProbability);
+                this.dataPartition = (Integer) parameters.getParameterValue(StartSimulationParameters.dataPartition);
                 this.classifier = (classifiersEnum) parameters.getParameterValue(StartSimulationParameters.classifier);
                 this.userDefinedMaxNVariables = (Integer) parameters.getParameterValue(StartSimulationParameters.numberOfVariables);
 
@@ -157,7 +152,6 @@ public class StartSimulationTask {
 
                         status = TaskStatus.FINISHED;
                 } catch (Exception e) {
-                        e.printStackTrace();
                         status = TaskStatus.ERROR;
                 }
         }
@@ -167,15 +161,15 @@ public class StartSimulationTask {
                 ConfigurationParameters configuration = (ConfigurationParameters) desktopParameters.getSaveConfigurationParameters();
 
                 this.showResults = (Boolean) configuration.getParameterValue(ConfigurationParameters.showResults);
-                World world = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, textArea, this.maxBugs, maxVariables, this.classifier, this.repProbability);
+                World world = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, textArea, this.maxBugs, maxVariables, this.classifier);
                 thread = new sinkThread(world);
                 thread.start();
         }
 
         private void createRanges() {
                 int cont = 0;
-                int unit = training.getNumberCols() / 10;
-                while (cont < 11) {
+                int unit = training.getNumberCols() / this.dataPartition;
+                while (cont < this.dataPartition+1) {
                         this.ranges.add(new Range(unit * cont, (unit * cont) + unit));
                         cont++;
                 }
@@ -257,8 +251,9 @@ public class StartSimulationTask {
                         }
                 };
 
+                int count = 0;
                 for (Bug bug : bugs) {
-                        if (bug.getFMeasure() > 0.4) {
+                        if (bug.getFMeasure() > 0.7 && count < 300) {
                                 Result result = new Result();
                                 result.Classifier = bug.getClassifierType().name();
                                 List<Integer> ids = new ArrayList<Integer>();
@@ -287,6 +282,7 @@ public class StartSimulationTask {
                                         this.results.add(result);
                                 }
                         }
+                        count++;
 
                 }
 
@@ -341,7 +337,7 @@ public class StartSimulationTask {
         }
 
         private void startCicleVariableNumberSelection(Range range, int numberOfVariables) {
-                World iworld = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, null, this.maxBugs, numberOfVariables, this.classifier, this.repProbability);
+                World iworld = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, null, this.maxBugs, numberOfVariables, this.classifier);
                 sinkThreadVariableNumberSelection thread = new sinkThreadVariableNumberSelection(numberOfVariables, iworld);
                 thread.start();
         }

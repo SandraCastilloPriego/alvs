@@ -44,11 +44,10 @@ public class World {
         boolean firstCycle = true;
         int numberOfBugsCopies;
         Range range;
-        double repProbability;
 
         public World(BugDataset training, BugDataset validation, Range range,
                 int numberOfBugsCopies, int bugLife, JTextArea text,
-                int bugsLimitNumber, int maxVariables, classifiersEnum classifier, double repProbability) {
+                int bugsLimitNumber, int maxVariables, classifiersEnum classifier) {
                 this.trainingDataset = training;
                 this.validationDataset = validation;
                 this.population = new ArrayList<Bug>();
@@ -60,7 +59,6 @@ public class World {
                 this.classifier = classifier;
                 this.numberOfBugsCopies = numberOfBugsCopies;
                 this.range = range;
-                this.repProbability = repProbability;
                 this.results = new ArrayList<Result>();
 
                 if (training != null) {
@@ -111,7 +109,7 @@ public class World {
                 for (int j = 0; j < this.population.size(); j++) {
                         List<Bug> bugsInside = new ArrayList<Bug>();
                         bugsInside.add(this.population.get(j));
-                        for (int i = 0; i < 5; i++) {
+                        for (int i = 0; i < 2; i++) {
                                 int index = this.rand.nextInt(this.population.size());
                                 if (index > 0) {
                                         bugsInside.add(this.population.get(index));
@@ -220,15 +218,8 @@ public class World {
                                 Bug mother = bugsInside.get(0);
                                 for (Bug father : bugsInside) {
                                         if (!mother.isSameBug(father)) {
-                                               /* if (isKilling(mother.getFMeasure()
-                                                        - father.getFMeasure())
-                                                        && father.getRows().size() > 1) {
-                                                        father.kill();
-                                                } else if (isKilling(father.getFMeasure()
-                                                        - mother.getFMeasure())
-                                                        && mother.getRows().size() > 1) {
-                                                        mother.kill();
-                                                } else */if (isKilling(this.repProbability) && father.getAge() > (this.bugLife / 1.5) && mother.getAge() > (this.bugLife / 1.5)) {
+                                                if (father.getAge() > (this.bugLife / 3) && mother.getAge() > (this.bugLife / 3) 
+                                                        && father.predict() && mother.predict()) {
                                                         population.add(new Bug(father, mother, this.trainingDataset, this.bugLife, this.maxVariables, this.range));
                                                 }
                                         }
@@ -239,16 +230,5 @@ public class World {
                         System.out.println("Something failed during reproduction");
                 }
         }
-
-        private boolean isKilling(double difference) {
-                if (difference < 0) {
-                        return false;
-                }
-                double value = Math.random();
-                if (value <= difference - 0.1) {
-                        return true;
-                } else {
-                        return false;
-                }
-        }
+       
 }

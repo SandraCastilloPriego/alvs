@@ -60,6 +60,7 @@ public final class Bug {
         int[] clusters;
         Instances training, test;
         double fValue = 0;
+        double ridge = 0;
 
         public Bug(PeakListRow row, BugDataset dataset, int bugLife, int maxVariable, classifiersEnum classifier, Range range) {
                 rand = new Random();
@@ -74,7 +75,11 @@ public final class Bug {
                         this.classifierType = classifiersEnum.values()[n];
                 } else {
                         this.classifierType = classifier;
+                      /*   if (this.classifierType == classifiersEnum.) {
+                                this.ridge = (double) (this.rand.nextInt(200) + 1) / 10;
+                        }*/
                 }
+                
                 this.classify(range, dataset);
                 this.life = bugLife;
 
@@ -120,10 +125,10 @@ public final class Bug {
                 for (int i = 0; i < rowList.size(); i++) {
                         clusters[i] = rowList.get(i).getCluster();
                 }
-                
+
                 this.evaluation();
         }
-        
+
         public void evaluation() {
                 try {
                         eval = new Evaluation(training);
@@ -136,7 +141,6 @@ public final class Bug {
                         this.sen = this.tpos / (this.tpos + this.fneg);
                         this.spec = this.tneg / (this.tneg + this.fpos);
                 } catch (Exception ex) {
-                        System.out.println("previuos fValue: " + this.fValue);
                         this.life = 0;
                 }
         }
@@ -228,32 +232,32 @@ public final class Bug {
 
                         if (prediction == 0.0 && realValue == 1.0) {
                                 this.life += 0.5;
-                              //  this.tneg++;
-                              //  this.totaltpostneg++;
                         } else if (prediction == 1.0 && realValue == 2.0) {
                                 this.life += 0.5;
-                             //   this.tpos++;
-                              //  this.totaltpostneg++;
                         } else if (prediction == 0.0 && realValue == 2.0) {
                                 this.life -= 0.5;
-                              //  this.fneg++;
                         } else if (prediction == 1.0 && realValue == 1.0) {
                                 this.life -= 0.5;
-                              //  this.fpos++;
                         }
                         this.age++;
-                      /*  if (this.tpos > 0) {
-                                this.sen = this.tpos / (this.tpos + this.fneg);
-                               // this.precision = this.tpos / (this.tpos + this.fpos);
-                              //  this.recall = this.tpos / (this.tpos + this.fneg);
-                        }
-
-                        if (this.tneg > 0) {
-                                this.spec = this.tneg / (this.tneg + this.fpos);
-                        }
-                        this.fValue = 2 * ((sen * spec) / (sen + spec));*/
                 } catch (Exception ex) {
                         Logger.getLogger(Bug.class.getName()).log(Level.SEVERE, null, ex);
+                }
+        }
+
+        public boolean predict() {
+                try {
+                        Instance instance = this.test.instance(this.rand.nextInt(this.test.numInstances()));
+                        double prediction = eval.evaluateModelOnce(classifier, instance);
+                        double realValue = Double.parseDouble(instance.stringValue(instance.classAttribute()));
+                        if ((prediction == 0.0 && realValue == 1.0)||(prediction == 1.0 && realValue == 2.0)) {
+                                return true;
+                        }else{
+                                return false;
+                        }
+                } catch (Exception ex) {
+                        Logger.getLogger(Bug.class.getName()).log(Level.SEVERE, null, ex);
+                        return false;
                 }
         }
 

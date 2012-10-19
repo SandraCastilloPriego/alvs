@@ -27,7 +27,10 @@ public class StartSimulationParameters extends SimpleParameterSet {
 
         public static final Parameter iterations = new SimpleParameter(
                 ParameterType.INTEGER, "Number of iterations",
-                "Introduce the number of iterations", new Integer(1000));
+                "Introduce the number of iterations", new Integer(100));
+        public static final Parameter dataPartition = new SimpleParameter(
+                ParameterType.INTEGER, "Partition of the data",
+                "In how many pieces the data is going to be cut", new Integer(10));
         public static final Parameter bugLimit = new SimpleParameter(
                 ParameterType.INTEGER, "Max number of bugs",
                 "Maximum number of bugs living in the world", new Integer(1500));
@@ -42,15 +45,12 @@ public class StartSimulationParameters extends SimpleParameterSet {
                 "Select the classifier", null, classifiersEnum.values());
         public static final Parameter stoppingCriteria = new SimpleParameter(
                 ParameterType.INTEGER, "Stopping criteria (%)",
-                "% of variables in living in the world", new Integer(30));
-        public static final Parameter repProbability = new SimpleParameter(
-                ParameterType.DOUBLE, "Reproduction probability",
-                "Probability of reproduction when 2 bugs are compatible", new Double(0.5));
+                "% of variables in living in the world", new Integer(30));        
         public static final Parameter numberOfVariables = new SimpleParameter(
                 ParameterType.INTEGER, "Number of variables",
                 "Maximum number of Variables. Set \"-1\" if the selection has to be done automatically", new Integer(-1));
 
         public StartSimulationParameters() {
-                super(new Parameter[]{iterations, bugLimit, numberOfBugs, bugLife, classifier, stoppingCriteria, repProbability, numberOfVariables});
+                super(new Parameter[]{iterations, dataPartition, bugLimit, numberOfBugs, bugLife, classifier, stoppingCriteria, numberOfVariables});
         }
 }
