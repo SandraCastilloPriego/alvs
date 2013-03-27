@@ -10,7 +10,7 @@ package alvs.modules.simulation;
  * @author scsandra
  */
 public enum classifiersEnum {
-    Automatic_Selection, Logistic, LogisticBase, LogitBoost,
+    Logistic, LogisticBase, LogitBoost,
     NaiveBayesMultinomialUpdateable, NaiveBayesUpdateable,
     RandomForest, RandomCommittee, RandomTree,
     ZeroR, Stacking, AdaBoostM1, Bagging,

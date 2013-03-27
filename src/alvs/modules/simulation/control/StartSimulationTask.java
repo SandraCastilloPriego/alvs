@@ -55,7 +55,7 @@ public class StartSimulationTask {
         private String errorMessage;
         private sinkThread thread;
         private int numberOfBugsCopies, bugLife, iterations, maxBugs = 1000;
-        private classifiersEnum classifier = classifiersEnum.Automatic_Selection;
+        private classifiersEnum[] classifiers;
         private JTextArea textArea;
         private List<Range> ranges;
         private Random rand;
@@ -83,7 +83,13 @@ public class StartSimulationTask {
                 this.maxBugs = (Integer) parameters.getParameterValue(StartSimulationParameters.bugLimit);
                 this.stoppingCriteria = (Integer) parameters.getParameterValue(StartSimulationParameters.stoppingCriteria);
                 this.dataPartition = (Integer) parameters.getParameterValue(StartSimulationParameters.dataPartition);
-                this.classifier = (classifiersEnum) parameters.getParameterValue(StartSimulationParameters.classifier);
+                Object[] selectedClassifier = (Object[])parameters.getParameterValue(StartSimulationParameters.classifier);
+                
+                this.classifiers = new classifiersEnum[selectedClassifier.length];
+                for(int i = 0; i < selectedClassifier.length; i++){
+                        this.classifiers[i] = (classifiersEnum) selectedClassifier[i];
+                }
+                
                 this.userDefinedMaxNVariables = (Integer) parameters.getParameterValue(StartSimulationParameters.numberOfVariables);
 
 
@@ -161,7 +167,7 @@ public class StartSimulationTask {
                 ConfigurationParameters configuration = (ConfigurationParameters) desktopParameters.getSaveConfigurationParameters();
 
                 this.showResults = (Boolean) configuration.getParameterValue(ConfigurationParameters.showResults);
-                World world = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, textArea, this.maxBugs, maxVariables, this.classifier);
+                World world = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, textArea, this.maxBugs, maxVariables, this.classifiers);
                 thread = new sinkThread(world);
                 thread.start();
         }
@@ -169,7 +175,7 @@ public class StartSimulationTask {
         private void createRanges() {
                 int cont = 0;
                 int unit = training.getNumberCols() / this.dataPartition;
-                while (cont < this.dataPartition+1) {
+                while (cont < this.dataPartition + 1) {
                         this.ranges.add(new Range(unit * cont, (unit * cont) + unit));
                         cont++;
                 }
@@ -241,7 +247,6 @@ public class StartSimulationTask {
         public void printResult(List<Bug> bugs, Range range) {
 
                 Comparator<Result> c = new Comparator<Result>() {
-
                         public int compare(Result o1, Result o2) {
                                 if (o1.count < o2.count) {
                                         return 1;
@@ -253,7 +258,7 @@ public class StartSimulationTask {
 
                 int count = 0;
                 for (Bug bug : bugs) {
-                        if (bug.getFMeasure() > 0.7 && count < 300) {
+                        if (bug.getFMeasure() > 0.6 && count < 300) {
                                 Result result = new Result();
                                 result.Classifier = bug.getClassifierType().name();
                                 List<Integer> ids = new ArrayList<Integer>();
@@ -262,8 +267,8 @@ public class StartSimulationTask {
                                         ids.add(row.getID());
                                 }
 
-                              //  TestBug testing = new TestBug(ids, bug.getClassifierType(), training, validation);
-                               // double[] values = testing.prediction();
+                                //  TestBug testing = new TestBug(ids, bug.getClassifierType(), training, validation);
+                                // double[] values = testing.prediction();
                                 result.tspecificity = bug.getspecificity();
                                 result.tsensitivity = bug.getsensitivity();
                                 result.fScore = bug.getFMeasure();
@@ -286,9 +291,10 @@ public class StartSimulationTask {
 
                 }
 
-
-                Collections.sort(results, c);
-
+                try {
+                        Collections.sort(results, c);
+                } catch (Exception e) {
+                }
 
                 int contbug = 0;
                 String result = range.toString() + " \n";
@@ -300,8 +306,9 @@ public class StartSimulationTask {
                                 break;
                         }
                 }
-
                 this.textArea.setText(result);
+
+
 
         }
 
@@ -337,7 +344,7 @@ public class StartSimulationTask {
         }
 
         private void startCicleVariableNumberSelection(Range range, int numberOfVariables) {
-                World iworld = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, null, this.maxBugs, numberOfVariables, this.classifier);
+                World iworld = new World(training, validation, range, this.numberOfBugsCopies, this.bugLife, null, this.maxBugs, numberOfVariables, this.classifiers);
                 sinkThreadVariableNumberSelection thread = new sinkThreadVariableNumberSelection(numberOfVariables, iworld);
                 thread.start();
         }

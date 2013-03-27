@@ -41,7 +41,7 @@ public class StartSimulationParameters extends SimpleParameterSet {
                 ParameterType.INTEGER, "Life of the Bugs",
                 "Minimum number of cicles that a bug can live", new Integer(300));
         public static final Parameter classifier = new SimpleParameter(
-                ParameterType.STRING, "Classifier",
+                ParameterType.MULTIPLE_SELECTION, "Classifier",
                 "Select the classifier", null, classifiersEnum.values());
         public static final Parameter stoppingCriteria = new SimpleParameter(
                 ParameterType.INTEGER, "Stopping criteria (%)",

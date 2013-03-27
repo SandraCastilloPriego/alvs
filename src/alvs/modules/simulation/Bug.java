@@ -49,6 +49,7 @@ public final class Bug {
         private List<PeakListRow> rowList;
         private int life = 300;
         private Classifier classifier;
+        private classifiersEnum[] classifiers;
         private classifiersEnum classifierType;
         private double age;
         double spec = 0, sen = 0, totaltpostneg = 0, tpos = 0, tneg = 0, fpos = 0, fneg = 0, precision = 0, recall = 0;
@@ -62,7 +63,7 @@ public final class Bug {
         double fValue = 0;
         double ridge = 0;
 
-        public Bug(PeakListRow row, BugDataset dataset, int bugLife, int maxVariable, classifiersEnum classifier, Range range) {
+        public Bug(PeakListRow row, BugDataset dataset, int bugLife, int maxVariable, classifiersEnum[] classifiers, Range range) {
                 rand = new Random();
                 this.range = range;
                 this.rowList = new ArrayList<PeakListRow>();
@@ -70,19 +71,17 @@ public final class Bug {
                         this.rowList.add(row);
                 }
                 this.MAXNUMBERGENES = maxVariable;
-                if (classifier == classifiersEnum.Automatic_Selection) {
-                        int n = rand.nextInt(classifiersEnum.values().length);
-                        this.classifierType = classifiersEnum.values()[n];
-                } else {
-                        this.classifierType = classifier;
-                      /*   if (this.classifierType == classifiersEnum.) {
-                                this.ridge = (double) (this.rand.nextInt(200) + 1) / 10;
-                        }*/
-                }
-                
+
+                this.classifiers = classifiers;
+                int n = rand.nextInt(classifiers.length);
+                this.classifierType = classifiers[n];
+                /*   if (this.classifierType == classifiersEnum.) {
+                 this.ridge = (double) (this.rand.nextInt(200) + 1) / 10;
+                 }*/
+
+
                 this.classify(range, dataset);
                 this.life = bugLife;
-
                 clusters = new int[rowList.size()];
                 for (int i = 0; i < rowList.size(); i++) {
                         clusters[i] = rowList.get(i).getCluster();
@@ -91,7 +90,7 @@ public final class Bug {
 
         @Override
         public Bug clone() {
-                Bug newBug = new Bug(null, null, this.life, this.MAXNUMBERGENES, this.classifierType, this.range);
+                Bug newBug = new Bug(null, null, this.life, this.MAXNUMBERGENES, this.classifiers, this.range);
                 newBug.training = this.training;
                 newBug.test = this.test;
                 newBug.rowList = this.getRows();
@@ -141,6 +140,7 @@ public final class Bug {
                         this.sen = this.tpos / (this.tpos + this.fneg);
                         this.spec = this.tneg / (this.tneg + this.fpos);
                 } catch (Exception ex) {
+                        ex.printStackTrace();
                         this.life = 0;
                 }
         }
@@ -221,6 +221,7 @@ public final class Bug {
                                 classifier.buildClassifier(training);
                         }
                 } catch (Exception ex) {
+                        ex.printStackTrace();
                 }
         }
 
@@ -250,9 +251,9 @@ public final class Bug {
                         Instance instance = this.test.instance(this.rand.nextInt(this.test.numInstances()));
                         double prediction = eval.evaluateModelOnce(classifier, instance);
                         double realValue = Double.parseDouble(instance.stringValue(instance.classAttribute()));
-                        if ((prediction == 0.0 && realValue == 1.0)||(prediction == 1.0 && realValue == 2.0)) {
+                        if ((prediction == 0.0 && realValue == 1.0) || (prediction == 1.0 && realValue == 2.0)) {
                                 return true;
-                        }else{
+                        } else {
                                 return false;
                         }
                 } catch (Exception ex) {

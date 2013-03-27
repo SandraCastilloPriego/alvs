@@ -40,14 +40,14 @@ public class World {
         List<Result> results;
         int printCount = 0;
         int bugsLimitNumber;
-        classifiersEnum classifier;
+        classifiersEnum[] classifiers;
         boolean firstCycle = true;
         int numberOfBugsCopies;
         Range range;
 
         public World(BugDataset training, BugDataset validation, Range range,
                 int numberOfBugsCopies, int bugLife, JTextArea text,
-                int bugsLimitNumber, int maxVariables, classifiersEnum classifier) {
+                int bugsLimitNumber, int maxVariables, classifiersEnum[] classifiers) {
                 this.trainingDataset = training;
                 this.validationDataset = validation;
                 this.population = new ArrayList<Bug>();
@@ -56,7 +56,7 @@ public class World {
                 this.maxVariables = maxVariables;
                 this.text = text;
                 this.bugsLimitNumber = bugsLimitNumber;
-                this.classifier = classifier;
+                this.classifiers = classifiers;
                 this.numberOfBugsCopies = numberOfBugsCopies;
                 this.range = range;
                 this.results = new ArrayList<Result>();
@@ -90,7 +90,7 @@ public class World {
         }
 
         private void addBug(PeakListRow row) {
-                Bug bug = new Bug(row, trainingDataset, bugLife, maxVariables, classifier, this.range);
+                Bug bug = new Bug(row, trainingDataset, bugLife, maxVariables, classifiers, this.range);
                 bug.evaluation();
                 this.population.add(bug);
         }
@@ -136,8 +136,9 @@ public class World {
         }
 
         public void purgeBugs() {
-                Comparator<Bug> c = new Comparator<Bug>() {
-
+                Comparator<Bug> c;
+                c = new Comparator<Bug>() {
+                        @Override
                         public int compare(Bug o1, Bug o2) {
                                 if (o1.getFMeasure() < o2.getFMeasure()) {
                                         return 1;
@@ -146,10 +147,12 @@ public class World {
                                 }
                         }
                 };
-
-                Collections.sort(population, c);
-                for (int i = this.bugsLimitNumber; i < this.population.size(); i++) {
-                        population.get(i).kill();
+                try {
+                        Collections.sort(population, c);
+                        for (int i = this.bugsLimitNumber; i < this.population.size(); i++) {
+                                population.get(i).kill();
+                        }
+                } catch (Exception e) {
                 }
         }
 
@@ -204,7 +207,6 @@ public class World {
         private void reproduction(List<Bug> bugsInside) {
                 try {
                         Comparator<Bug> c = new Comparator<Bug>() {
-
                                 public int compare(Bug o1, Bug o2) {
                                         if (o1.getFMeasure() < o2.getFMeasure()) {
                                                 return 1;
@@ -218,7 +220,7 @@ public class World {
                                 Bug mother = bugsInside.get(0);
                                 for (Bug father : bugsInside) {
                                         if (!mother.isSameBug(father)) {
-                                                if (father.getAge() > (this.bugLife / 3) && mother.getAge() > (this.bugLife / 3) 
+                                                if (father.getAge() > (this.bugLife / 3) && mother.getAge() > (this.bugLife / 3)
                                                         && father.predict() && mother.predict()) {
                                                         population.add(new Bug(father, mother, this.trainingDataset, this.bugLife, this.maxVariables, this.range));
                                                 }
@@ -230,5 +232,4 @@ public class World {
                         System.out.println("Something failed during reproduction");
                 }
         }
-       
 }
