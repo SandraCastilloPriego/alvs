@@ -20,16 +20,12 @@ package alvs.main;
 import alvs.desktop.impl.MainWindow;
 import alvs.desktop.impl.helpsystem.HelpImpl;
 import alvs.taskcontrol.impl.TaskControllerImpl;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Vector;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.swing.SwingUtilities;
-
-
-
-
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
@@ -44,7 +40,7 @@ import org.dom4j.io.SAXReader;
 public class ALVSClient extends ALVSCore implements Runnable {
 
     private Logger logger = Logger.getLogger(this.getClass().getName());
-    private Vector<ALVSModule> moduleSet;
+    private List<ALVSModule> moduleSet;
     // make ALVSClient a singleton
     private static ALVSClient client = new ALVSClient();
 
@@ -113,7 +109,7 @@ public class ALVSClient extends ALVSCore implements Runnable {
 
             logger.finer("Loading modules");
 
-            moduleSet = new Vector<ALVSModule>();
+            moduleSet = new ArrayList<ALVSModule>();
 
             Iterator<Element> modIter = configRoot.element(MODULES_ELEMENT_NAME).
                     elementIterator(MODULE_ELEMENT_NAME);

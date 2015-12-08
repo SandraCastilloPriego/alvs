@@ -34,23 +34,23 @@ public class StartSimulationParameters extends SimpleParameterSet {
         public static final Parameter bugLimit = new SimpleParameter(
                 ParameterType.INTEGER, "Max number of bugs",
                 "Maximum number of bugs living in the world", new Integer(1500));
-        public static final Parameter numberOfBugs = new SimpleParameter(
+       /* public static final Parameter numberOfBugs = new SimpleParameter(
                 ParameterType.INTEGER, "Number of copies of bugs",
-                "Introduce the number of copies of variables", new Integer(3));
+                "Introduce the number of copies of variables", new Integer(3));*/
         public static final Parameter bugLife = new SimpleParameter(
                 ParameterType.INTEGER, "Life of the Bugs",
                 "Minimum number of cicles that a bug can live", new Integer(300));
         public static final Parameter classifier = new SimpleParameter(
                 ParameterType.MULTIPLE_SELECTION, "Classifier",
                 "Select the classifier", null, classifiersEnum.values());
-        public static final Parameter stoppingCriteria = new SimpleParameter(
+      /*  public static final Parameter stoppingCriteria = new SimpleParameter(
                 ParameterType.INTEGER, "Stopping criteria (%)",
                 "% of variables in living in the world", new Integer(30));        
-        public static final Parameter numberOfVariables = new SimpleParameter(
+       /* public static final Parameter numberOfVariables = new SimpleParameter(
                 ParameterType.INTEGER, "Number of variables",
-                "Maximum number of Variables. Set \"-1\" if the selection has to be done automatically", new Integer(-1));
+                "Maximum number of Variables. Set \"-1\" if the selection has to be done automatically", new Integer(-1));*/
 
         public StartSimulationParameters() {
-                super(new Parameter[]{iterations, dataPartition, bugLimit, numberOfBugs, bugLife, classifier, stoppingCriteria, numberOfVariables});
+                super(new Parameter[]{iterations, dataPartition, bugLimit,/* numberOfBugs,*/ bugLife, classifier/*, stoppingCriteria numberOfVariables*/});
         }
 }

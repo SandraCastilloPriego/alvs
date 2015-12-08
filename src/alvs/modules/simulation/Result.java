@@ -23,11 +23,11 @@ public class Result {
                 return this.values;
         }
 
-        public boolean isIt(List<String> values, String classifier) {
-                if (values.size() != this.values.size()) {
+        public boolean isIt(List<String> values2, String classifier) {
+                if (values2.size() != this.values.size()) {
                         return false;
                 }
-                for (String val : values) {
+                for (String val : values2) {
                         if (!this.values.contains(val)) {
                                 return false;
                         }
@@ -37,6 +37,10 @@ public class Result {
                 } else {
                         return false;
                 }
+        }
+        
+        public int getCount(){
+                return this.count;
         }
 
         public void count() {

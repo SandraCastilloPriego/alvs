@@ -18,7 +18,6 @@ package alvs.modules.simulation;
 
 import alvs.data.BugDataset;
 import alvs.data.PeakListRow;
-import alvs.util.Range;
 import java.util.*;
 import javax.swing.JTextArea;
 
@@ -28,208 +27,182 @@ import javax.swing.JTextArea;
  */
 public class World {
 
-        BugDataset trainingDataset, validationDataset;
-        List<Bug> population;
-        Random rand;
-        int jump = 1;
-        int cicleNumber = 0;
-        int bugLife;
-        int maxVariables = 1;
-        boolean changeNVariables = false;
-        JTextArea text;
-        List<Result> results;
-        int printCount = 0;
-        int bugsLimitNumber;
-        classifiersEnum[] classifiers;
-        boolean firstCycle = true;
-        int numberOfBugsCopies;
-        Range range;
+    BugDataset trainingDataset, validationDataset;
+    List<Bug> population;
+    Random rand;
+    int jump = 1;
+    int cicleNumber = 0;
+    int bugLife;
+    int maxVariables = 1;
+    boolean changeNVariables = false;
+    JTextArea text;
+    List<Result> results;
+    int printCount = 0;
+    int bugsLimitNumber;
+    classifiersEnum[] classifiers;
+    boolean firstCycle = true;
+    Set<Integer> range;
 
-        public World(BugDataset training, BugDataset validation, Range range,
-                int numberOfBugsCopies, int bugLife, JTextArea text,
-                int bugsLimitNumber, int maxVariables, classifiersEnum[] classifiers) {
-                this.trainingDataset = training;
-                this.validationDataset = validation;
-                this.population = new ArrayList<Bug>();
-                this.rand = new Random();
-                this.bugLife = bugLife;
-                this.maxVariables = maxVariables;
-                this.text = text;
-                this.bugsLimitNumber = bugsLimitNumber;
-                this.classifiers = classifiers;
-                this.numberOfBugsCopies = numberOfBugsCopies;
-                this.range = range;
-                this.results = new ArrayList<Result>();
+    public World(BugDataset training, BugDataset validation, int range, int bugLife, JTextArea text,
+        int bugsLimitNumber, classifiersEnum[] classifiers) {
+        this.trainingDataset = training;
+        this.validationDataset = validation;
+        this.population = new ArrayList<>();
+        this.rand = new Random();
+        this.bugLife = bugLife;
+        this.text = text;
+        this.bugsLimitNumber = bugsLimitNumber;
+        this.classifiers = classifiers;
+        if (range == this.trainingDataset.getNumberCols()) {
+            this.range = this.getSamples();
+        } else {
+            this.range = this.getRandomSample(range);
+        }
+        this.results = new ArrayList<>();
 
-                if (training != null) {
-                        try {
-                                for (int i = 0; i < numberOfBugsCopies; i++) {
-                                        for (PeakListRow row : training.getRows()) {
-                                                this.addBug(row);
-                                        }
-                                }
-                        } catch (Exception e) {
-                                System.out.println("variable X has been reporting memory problems");
-                                this.population = new ArrayList<Bug>();
-                        }
-
-                }
+        if (training != null) {
+            try {
                 for (PeakListRow row : training.getRows()) {
-                        this.addBug(row);
+                    this.addBug(row);
                 }
-        }
+            } catch (Exception e) {
+                System.out.println("variable X has been reporting memory problems");
+                this.population = new ArrayList<Bug>();
+            }
 
-        public synchronized void addMoreBugs() {
-                for (PeakListRow row : trainingDataset.getRows()) {
-                        this.addBug(row);
+        }
+        for (PeakListRow row : training.getRows()) {
+            this.addBug(row);
+        }
+    }
+
+    public Set<Integer> getRandomSample(int range) {
+        Random rng = new Random();
+        Set<Integer> generated = new LinkedHashSet<>();
+        while (generated.size() < range) {
+            Integer next = rng.nextInt(this.trainingDataset.getNumberCols() - 1) + 1;
+            // As we're adding to a set, this will automatically do a containment check
+            generated.add(next);
+        }
+        return generated;
+    }
+
+    public List<Bug> getBugs() {
+        return this.population;
+    }
+
+    private void addBug(PeakListRow row) {
+        Bug bug = new Bug(row, trainingDataset, bugLife, maxVariables, classifiers, this.range);
+        this.population.add(bug);
+    }
+
+    public int getMaxVariables() {
+        return this.maxVariables;
+    }
+
+    public synchronized void cicle() {
+        death();
+        Comparator<Bug> c = new Comparator<Bug>() {
+            public int compare(Bug o1, Bug o2) {
+                return Double.compare(o1.getFMeasure(), o2.getFMeasure());
+            }
+        };
+
+        Collections.sort(this.population, c);
+        if (population.size() > this.bugsLimitNumber) {
+            this.purgeBugs();
+        }
+        Collections.reverse(this.population);
+
+        reproduction(this.population);
+
+        this.cicleNumber++;
+        this.printCount++;
+
+        this.changeNVariables = false;
+
+    }
+
+    public void purgeBugs() {
+        try {
+            if (this.population.size() > this.bugsLimitNumber) {
+                for (int i = 0; i < this.bugsLimitNumber - this.population.size(); i++) {
+                    Bug b = population.get(i);
+                    if (b.getRows().size() > 1) {
+                        b.kill();
+                    }
                 }
+            }
+        } catch (Exception e) {
         }
+    }
 
-        public List<Bug> getBugs() {
-                return this.population;
-        }
-
-        private void addBug(PeakListRow row) {
-                Bug bug = new Bug(row, trainingDataset, bugLife, maxVariables, classifiers, this.range);
-                bug.evaluation();
-                this.population.add(bug);
-        }
-
-        public int getMaxVariables() {
-                return this.maxVariables;
-        }
-
-        public void cicle() {
-                death();
-
-                if (population.size() > this.bugsLimitNumber) {
-                        this.purgeBugs();
+    private synchronized void death() {
+        List<Bug> deadBugs = new ArrayList<Bug>();
+        for (Bug bug : population) {
+            try {
+                if (bug.isDead()) {
+                    deadBugs.add(bug);
+                } else {
+                    if (this.changeNVariables) {
+                        bug.setMaxVariable(maxVariables);
+                    }
                 }
-                eat();
-                for (int j = 0; j < this.population.size(); j++) {
-                        List<Bug> bugsInside = new ArrayList<Bug>();
-                        bugsInside.add(this.population.get(j));
-                        for (int i = 0; i < 2; i++) {
-                                int index = this.rand.nextInt(this.population.size());
-                                if (index > 0) {
-                                        bugsInside.add(this.population.get(index));
-                                }
-                        }
-                        reproduction(bugsInside);
-                }
-
-                this.cicleNumber++;
-                this.printCount++;
-
-                this.changeNVariables = false;
-
+            } catch (Exception e) {
+            }
         }
-
-        private synchronized void eat() {
-                for (Bug bug : population) {
-                        try {
-                                bug.eat();
-                        } catch (NullPointerException e) {
-                                e.printStackTrace();
-                        }
-                }
+        for (Bug bug : deadBugs) {
+            this.population.remove(bug);
         }
+    }
 
-        public void purgeBugs() {
-                Comparator<Bug> c;
-                c = new Comparator<Bug>() {
-                        @Override
-                        public int compare(Bug o1, Bug o2) {
-                                if (o1.getFMeasure() < o2.getFMeasure()) {
-                                        return 1;
-                                } else {
-                                        return -1;
-                                }
-                        }
-                };
-                try {
-                        Collections.sort(population, c);
-                        for (int i = this.bugsLimitNumber; i < this.population.size(); i++) {
-                                population.get(i).kill();
-                        }
-                } catch (Exception e) {
-                }
+    public List<Result> getResult() {
+        return this.results;
+    }
+
+    public void restart(int newRange) {
+        if (newRange == this.trainingDataset.getNumberCols()) {
+            this.range = this.getSamples();
+        } else {
+            this.range = this.getRandomSample(newRange);
         }
-
-        private synchronized void death() {
-                List<Bug> deadBugs = new ArrayList<Bug>();
-                for (Bug bug : population) {
-                        try {
-                                if (bug.isDead()) {
-                                        deadBugs.add(bug);
-                                } else {
-                                        if (this.changeNVariables) {
-                                                bug.setMaxVariable(maxVariables);
-                                        }
-                                }
-                        } catch (Exception e) {
-                        }
-                }
-                for (Bug bug : deadBugs) {
-                        this.population.remove(bug);
-                }
+        for (Bug b : this.population) {
+            b.setNewRange(range,
+                this.trainingDataset);
         }
+    }
 
-        public List<Result> getResult() {
-                return this.results;
+    private synchronized void reproduction(List<Bug> bugsInside) {
+        try {
+            for (int j = 0; j < 50; j++) {
+                reproduce(bugsInside);
+            }
+
+        } catch (Exception e) {
+            System.out.println("Something failed during reproduction");
+            e.printStackTrace();
         }
+    }
 
-        public double[] getNewPoints(int nPoints) {
-                int counter = 0;
-                double[] points = new double[nPoints + 1];
-                for (int i = 0; i < this.population.size(); i++) {
-                        Bug bug = this.population.get(i);
-                        if ((bug.getRows().size() == this.maxVariables)) {
-                                points[counter++] = bug.getTestError();
-                        }
-                        if (counter == nPoints) {
-                                break;
-                        }
+    public void reproduce(List<Bug> bugsInside) {
+        Bug mother = bugsInside.get(this.rand.nextInt(bugsInside.size()));
+        Bug father = bugsInside.get(this.rand.nextInt(bugsInside.size()));
+        //System.out.println("Reproducing: Mother= " + mother.toString()+ " Father= "+ father.toString());
+      //  Thread reproduce = new Thread(new Runnable() {
+        //    public void run() {
+                if (!mother.isSameBug(father)) {
+                    population.add(new Bug(father, mother, trainingDataset, bugLife, maxVariables, range));
                 }
-                return points;
+          //  }
+        //});
+        //reproduce.start();
+    }
+
+    private Set<Integer> getSamples() {
+        Set<Integer> sampleSet = new LinkedHashSet<Integer>();
+        for (int i = 0; i < this.trainingDataset.getNumberCols(); i++) {
+            sampleSet.add(i);
         }
-
-        public void restart(Range newRange) {
-                this.range = newRange;
-                for (Bug b : this.population) {
-                        b.setNewRange(newRange,
-                                this.trainingDataset);
-                }
-
-                this.addMoreBugs();
-        }
-
-        private void reproduction(List<Bug> bugsInside) {
-                try {
-                        Comparator<Bug> c = new Comparator<Bug>() {
-                                public int compare(Bug o1, Bug o2) {
-                                        if (o1.getFMeasure() < o2.getFMeasure()) {
-                                                return 1;
-                                        } else {
-                                                return -1;
-                                        }
-                                }
-                        };
-                        if (bugsInside.size() > 1) {
-                                Collections.sort(bugsInside, c);
-                                Bug mother = bugsInside.get(0);
-                                for (Bug father : bugsInside) {
-                                        if (!mother.isSameBug(father)) {
-                                                if (father.getAge() > (this.bugLife / 3) && mother.getAge() > (this.bugLife / 3)
-                                                        && father.predict() && mother.predict()) {
-                                                        population.add(new Bug(father, mother, this.trainingDataset, this.bugLife, this.maxVariables, this.range));
-                                                }
-                                        }
-                                }
-                        }
-
-                } catch (Exception e) {
-                        System.out.println("Something failed during reproduction");
-                }
-        }
+        return sampleSet;
+    }
 }
