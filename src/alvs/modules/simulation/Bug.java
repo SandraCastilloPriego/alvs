@@ -193,17 +193,18 @@ public final class Bug {
     private double getMeasure(Instances data) {
         if (classifier != null && data != null) {
             try {
-                ThresholdSelector TSclassifier = new ThresholdSelector();
-                TSclassifier.setMeasure(new SelectedTag("recall", ThresholdSelector.TAGS_MEASURE));
-                TSclassifier.setClassifier(classifier);
-                
-                TSclassifier.buildClassifier(data);
-               // classifier.buildClassifier(data);
-                eval = new Evaluation(data);
-                eval.evaluateModel(TSclassifier, data);
-               //  System.out.println("ROC: " + eval.areaUnderROC(1));
+                //ThresholdSelector TSclassifier = new ThresholdSelector();
+               // TSclassifier.setMeasure(new SelectedTag("recall", ThresholdSelector.TAGS_MEASURE));
+                //TSclassifier.setClassifier(classifier);
 
-                // return eval.fMeasure(1);
+                // TSclassifier.buildClassifier(data);
+                classifier.buildClassifier(data);
+                eval = new Evaluation(data);
+                //eval.evaluateModel(TSclassifier, data);
+                eval.evaluateModel(classifier, data);
+                //  System.out.println("ROC: " + eval.areaUnderROC(1));
+
+                //return eval.fMeasure(1);
                 return eval.areaUnderROC(1);
             } catch (Exception ex) {
                 Logger.getLogger(Bug.class.getName()).log(Level.SEVERE, null, ex);
@@ -305,15 +306,14 @@ public final class Bug {
 
     public void evaluation() {
         try {
-            
-            
-            ThresholdSelector TSclassifier = new ThresholdSelector();
-            TSclassifier.setClassifier(classifier);
-            TSclassifier.setMeasure(new SelectedTag("recall", ThresholdSelector.TAGS_MEASURE));
-            TSclassifier.buildClassifier(training);
-            eval = new Evaluation(training);
-            eval.evaluateModel(TSclassifier, training);
 
+            // ThresholdSelector TSclassifier = new ThresholdSelector();
+            //TSclassifier.setClassifier(classifier);
+            //TSclassifier.setMeasure(new SelectedTag("recall", ThresholdSelector.TAGS_MEASURE));
+            //TSclassifier.buildClassifier(training);
+            eval = new Evaluation(training);
+            //eval.evaluateModel(TSclassifier, training);
+            eval.evaluateModel(classifier, training);
             // this.fValue = eval.fMeasure(1);
             this.fValue = eval.areaUnderROC(1);
             this.tpos = eval.numTruePositives(1);

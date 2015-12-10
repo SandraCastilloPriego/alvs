@@ -114,7 +114,7 @@ public class World {
         }
         Collections.reverse(this.population);
 
-        reproduction(this.population);
+        reproduce(this.population);
 
         this.cicleNumber++;
         this.printCount++;
@@ -172,28 +172,37 @@ public class World {
         }
     }
 
-    private synchronized void reproduction(List<Bug> bugsInside) {
+    public void reproduce(List<Bug> bugsInside) {
+        List<Reproduction> allThreads = new ArrayList<>();
         try {
             for (int j = 0; j < 50; j++) {
-                reproduce(bugsInside);
+                Reproduction thread = new Reproduction(bugsInside, this.population, rand, this.trainingDataset, this.bugLife, this.maxVariables, this.range);
+                allThreads.add(thread);
+                thread.run();
             }
 
+            while (!allThreads.isEmpty()) {
+                Iterator<Reproduction> ite = allThreads.iterator();
+                while (ite.hasNext()) {
+                    Reproduction thread = ite.next();
+                    if (!thread.isAlive()) {
+                        ite.remove();
+                    }
+                }
+            }
         } catch (Exception e) {
             System.out.println("Something failed during reproduction");
             e.printStackTrace();
         }
-    }
-
-    public void reproduce(List<Bug> bugsInside) {
-        Bug mother = bugsInside.get(this.rand.nextInt(bugsInside.size()));
-        Bug father = bugsInside.get(this.rand.nextInt(bugsInside.size()));
+     //   Bug mother = bugsInside.get(this.rand.nextInt(bugsInside.size()));
+        // Bug father = bugsInside.get(this.rand.nextInt(bugsInside.size()));
         //System.out.println("Reproducing: Mother= " + mother.toString()+ " Father= "+ father.toString());
-      //  Thread reproduce = new Thread(new Runnable() {
+        //  Thread reproduce = new Thread(new Runnable() {
         //    public void run() {
-                if (!mother.isSameBug(father)) {
-                    population.add(new Bug(father, mother, trainingDataset, bugLife, maxVariables, range));
-                }
-          //  }
+        //      if (!mother.isSameBug(father)) {
+        //        population.add(new Bug(father, mother, trainingDataset, bugLife, maxVariables, range));
+        //  }
+        //  }
         //});
         //reproduce.start();
     }

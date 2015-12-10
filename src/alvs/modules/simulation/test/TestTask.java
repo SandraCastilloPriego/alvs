@@ -124,9 +124,15 @@ public class TestTask implements Task {
 
     public void printPrediction() {
         try {
+                     
             validationData = this.getDataset(validation);
+            
+            ThresholdSelector TSclassifier = new ThresholdSelector();
+            TSclassifier.setClassifier(classifier);
+            TSclassifier.setMeasure(new SelectedTag("FMEASURE", ThresholdSelector.TAGS_MEASURE));
+            TSclassifier.buildClassifier(validationData);  
             Evaluation eval = new Evaluation(validationData);
-            eval.evaluateModel(classifier, validationData);
+            eval.evaluateModel(TSclassifier, validationData);
             for (int i = 0; i < validationData.numInstances(); i++) {
                 System.out.println(validationData.instance(i).classValue() + " - " + eval.evaluateModelOnce(classifier, validationData.instance(i)));
             }
